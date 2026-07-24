@@ -11,10 +11,11 @@ from spack.package import *
 class Thapi(AutotoolsPackage):
     """A tracing infrastructure for heterogeneous computing applications."""
 
-    homepage = "https://github.com/argonne-lcf/THAPI"
-    git = "https://github.com/argonne-lcf/THAPI.git"
+    homepage = "https://github.com/anlsys/THAPI"
+    git = "https://github.com/anlsys/THAPI.git"
 
-    version("master", branch="master", preferred=True)
+    version("ze-validator-dev", branch="ze-validator-dev", preferred=True)
+    version("master", branch="master")
     version("develop", branch="devel")
     version("0.0.15", tag="v0.0.15")
     version("0.0.14", tag="v0.0.14")
