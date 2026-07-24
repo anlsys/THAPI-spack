@@ -32,3 +32,11 @@ class RubyMetababel(RubyPackage):
     version("0.0.0", sha256="9af39e0af353d9ff9c74f301b0a8fea409b784ded622a9e30d387b1cb233d50a", expand=False)
 
     depends_on("ruby@2.7.0:", type=("build", "run"))
+
+    def setup_build_environment(self, env):
+        # RubyGems builds native C extensions by invoking `make`. Spack exports a
+        # GNU Make 4.4 jobserver via MAKEFLAGS (`--jobserver-auth=fifo:...`) that
+        # the make used by RubyGems can reject with:
+        #   make: *** internal error: invalid --jobserver-auth string 'fifo:...'
+        # Drop MAKEFLAGS so the extension build runs without the jobserver.
+        env.unset("MAKEFLAGS")

@@ -20,3 +20,11 @@ class RubyOpencl(RubyPackage):
     depends_on("ruby-narray-old", type=("build", "run"))
     depends_on("ruby-ffi", type=("build", "run"))
     depends_on("ruby-narray-ffi", type=("build", "run"))
+
+    def setup_build_environment(self, env):
+        # RubyGems builds native C extensions by invoking `make`. Spack exports a
+        # GNU Make 4.4 jobserver via MAKEFLAGS (`--jobserver-auth=fifo:...`) that
+        # the make used by RubyGems can reject with:
+        #   make: *** internal error: invalid --jobserver-auth string 'fifo:...'
+        # Drop MAKEFLAGS so the extension build runs without the jobserver.
+        env.unset("MAKEFLAGS")
