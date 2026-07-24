@@ -73,6 +73,15 @@ class LttngTools(AutotoolsPackage):
     # Apparently, spack doesn't generate the configure file if there is one already.
     force_autoreconf = True
 
+    def setup_build_environment(self, env):
+        # Force configure to use the pkg-config Spack selected for us. Otherwise a
+        # pkg-config/pkgconf from the environment (e.g. an Aurora `pkgconf` module
+        # built with oneAPI that needs libsvml.so, exported via $PKG_CONFIG) can be
+        # used by autoconf's PKG_PROG_PKG_CONFIG. Because Spack scrubs
+        # LD_LIBRARY_PATH during the build, that binary then fails with:
+        #   pkgconf: error while loading shared libraries: libsvml.so
+        env.set("PKG_CONFIG", join_path(self.spec["pkg-config"].prefix.bin, "pkg-config"))
+
     def configure_args(self):
         args = []
         args.extend(self.enable_or_disable("man-pages"))

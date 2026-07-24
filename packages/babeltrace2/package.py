@@ -104,3 +104,10 @@ class Babeltrace2(AutotoolsPackage):
         # Without the following line, conftest checking glib version picks up
         # system glib instead of the spack installed glib.
         env.prepend_path("LD_LIBRARY_PATH", self.spec["glib"].prefix.lib)
+        # Force configure to use the pkg-config Spack selected for us. Otherwise a
+        # pkg-config/pkgconf from the environment (e.g. an Aurora `pkgconf` module
+        # built with oneAPI that needs libsvml.so, exported via $PKG_CONFIG) can be
+        # used by autoconf's PKG_PROG_PKG_CONFIG. Because Spack scrubs
+        # LD_LIBRARY_PATH during the build, that binary then fails with:
+        #   pkgconf: error while loading shared libraries: libsvml.so
+        env.set("PKG_CONFIG", join_path(self.spec["pkg-config"].prefix.bin, "pkg-config"))
