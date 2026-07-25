@@ -33,6 +33,13 @@ class Thapi(AutotoolsPackage):
     variant("sync-daemon-mpi", default=False, description="Enable MPI support for the Sync Daemon", when="@0.0.13:")
     variant("clang-parser", default=True, description="Enable Clang Parser", when="@0.0.13:master")
     variant("archive", default=False, description="Enable archive mode of THAPI", when="@0.0.13:")
+    variant(
+        "build_type",
+        default="RelWithDebInfo",
+        values=("Release", "RelWithDebInfo", "Debug"),
+        multi=False,
+        description="Optimization/debug level (Release: -O3 -DNDEBUG, no debug symbols)",
+    )
 
     depends_on("c", type=("build"))
     depends_on("cxx", type=("build"))
@@ -110,6 +117,16 @@ class Thapi(AutotoolsPackage):
 
     def configure_args(self):
         args = []
+
+        # Optimization/debug level. Passed to configure so it overrides
+        # Autotools' default `-g -O2`, which automake always appends last.
+        # RelWithDebInfo intentionally injects nothing -> keep Autotools default.
+        _build_type_flags = {"Release": "-O3 -DNDEBUG", "Debug": "-O0 -g"}
+        _bt = self.spec.variants["build_type"].value
+        if _bt in _build_type_flags:
+            args.append("CFLAGS=" + _build_type_flags[_bt])
+            args.append("CXXFLAGS=" + _build_type_flags[_bt])
+
         if self.spec.version >= Version("0.0.13"):
             args.extend(self.enable_or_disable("sync-daemon-mpi"))
         else:
