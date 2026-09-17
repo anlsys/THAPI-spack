@@ -17,6 +17,7 @@ class Thapi(AutotoolsPackage):
     version("ze-validator-dev", branch="ze-validator-dev", preferred=True)
     version("master", branch="master")
     version("develop", branch="devel")
+    version("0.0.16", tag="v0.0.16")
     version("0.0.15", tag="v0.0.15")
     version("0.0.14", tag="v0.0.14")
     version("0.0.13", tag="v0.0.13")
@@ -31,7 +32,7 @@ class Thapi(AutotoolsPackage):
     variant("test-dependencies", default=False, description="Install THAPI test dependencies (bats, clinfo, etc.)")
     variant("mpi", default=False, description="Enable MPI support for the Sync Daemon", when="@:0.0.12")
     variant("sync-daemon-mpi", default=False, description="Enable MPI support for the Sync Daemon", when="@0.0.13:")
-    variant("clang-parser", default=True, description="Enable Clang Parser", when="@0.0.13:master")
+    variant("clang-parser", default=True, description="Enable Clang Parser", when="@0.0.13")
     variant("archive", default=False, description="Enable archive mode of THAPI", when="@0.0.13:")
     variant(
         "build_type",
@@ -51,6 +52,12 @@ class Thapi(AutotoolsPackage):
     # 4.3+ for grouped target
     depends_on("gmake@4.3:", type=("build"))
     depends_on("protobuf@3.12.4:", type=("build", "link", "run"))
+    # abseil-cpp@20250127.0: has an unguarded `#include <version>` in span.h that
+    # picks up our utils/version data file. 0.0.16 renamed it to thapi_version,
+    # so the cap only applies through 0.0.15. protobuf@30: needs those abseil
+    # versions, so both are capped together.
+    depends_on("protobuf@:29", type=("build", "link", "run"), when="@:0.0.15")
+    depends_on("abseil-cpp@:20240722", type=("build", "link", "run"), when="@:0.0.15")
 
     depends_on("babeltrace2", type=("build", "link", "run"))
     depends_on("babeltrace2@2.1.0-archive", type=("build", "link", "run"), when="+archive")
@@ -84,13 +91,19 @@ class Thapi(AutotoolsPackage):
     depends_on("ruby-metababel@1.1.2:", type=("build"), when="@0.0.12:")
     depends_on("ruby-metababel@1.1.4:", type=("build"), when="@0.0.13:")
 
-    depends_on("libiberty+pic")
+    # Demangling: 0.0.16 switched from libiberty to llvm::demangle (a tiny
+    # standalone extraction of LLVM's demangler) for the symbols
+    # __cxa_demangle can't handle. +pic so the static lib links into the
+    # shared babeltrace plugins.
+    depends_on("libiberty+pic", when="@:0.0.15")
+    depends_on("llvm-demangle+pic", when="@0.0.16:")
     depends_on("libffi")
     depends_on("mpi", when="+mpi")
     depends_on("mpi", when="+sync-daemon-mpi")
-    depends_on("h2yaml@0.3.1:0.4.0", type=("build"), when="@:0.0.12 +clang-parser")
-    depends_on("h2yaml@0.4.3:", type=("build"), when="@0.0.13:master +clang-parser")
-    depends_on("h2yaml@0.4.3:", type=("build"), when="@develop")
+    # 0.0.14 dropped --disable-clang-parser: configure now hard-errors without
+    # h2yaml, so from there on it is an unconditional build dep.
+    depends_on("h2yaml@0.4.3:", type=("build"), when="@0.0.13 +clang-parser")
+    depends_on("h2yaml@0.4.3:", type=("build"), when="@0.0.14:")
 
     # Add dev tools required for THAPI development and testing.
     depends_on("bats", when="+test-dependencies")
@@ -133,11 +146,8 @@ class Thapi(AutotoolsPackage):
             args.extend(self.enable_or_disable("mpi"))
         args.extend(self.enable_or_disable("strict"))
 
-        # No clang-variant for develop, you always need it
-        if self.spec.version >= Version("develop"):
-            return args
-
-        # Before develop, `--disable-clang-parser` was an option
-        if not self.spec.satisfies("+clang-parser"):
+        # `--disable-clang-parser` only ever existed in 0.0.13; the clang
+        # parser is mandatory from 0.0.14 on.
+        if self.spec.satisfies("@0.0.13 ~clang-parser"):
             args.append("--disable-clang-parser")
         return args

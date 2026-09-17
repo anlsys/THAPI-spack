@@ -21,10 +21,6 @@ class RubyFfi(RubyPackage):
 
     depends_on("ruby@2.3.0:", type=("build", "run"))
 
-    def setup_build_environment(self, env):
-        # RubyGems builds native C extensions by invoking `make`. Spack exports a
-        # GNU Make 4.4 jobserver via MAKEFLAGS (`--jobserver-auth=fifo:...`) that
-        # the make used by RubyGems can reject with:
-        #   make: *** internal error: invalid --jobserver-auth string 'fifo:...'
-        # Drop MAKEFLAGS so the extension build runs without the jobserver.
-        env.unset("MAKEFLAGS")
+    # Native extension: gem builds via make. Declaring gmake lets Spack detect the
+    # concrete make version and pick a jobserver protocol it understands.
+    depends_on("gmake", type="build")

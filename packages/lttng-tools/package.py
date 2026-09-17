@@ -61,12 +61,11 @@ class LttngTools(AutotoolsPackage):
     depends_on("userspace-rcu@0.14.1:", when="@2.14:")
     depends_on("userspace-rcu@0.11.0:", when="@2.11:")
     depends_on("userspace-rcu@0.9.0:", when="@:2.10.999")
-    # libxml2 >= 2.14.0 turned `xmlCharEncodingHandler.input`/`.output` into
-    # unions (no longer callable function pointers), which breaks lttng-tools'
-    # `handler->input(...)` call in session-config.c:
-    #   error: called object is not a function or function pointer
-    # Cap at 2.13 to keep the old, callable encoding-handler API.
-    depends_on("libxml2@2.7.6:2.13")
+    # libxml2 2.14 turned xmlCharEncodingHandler.input into a union, so the
+    # `handler->input(...)` call in session-config.c no longer compiles. 2.14
+    # onwards calls the public xmlCharEncInFunc() instead and is unaffected.
+    depends_on("libxml2@2.7.6:2.13", when="@:2.13")
+    depends_on("libxml2@2.7.6:", when="@2.14:")
 
     conflicts("+bin-lttng-crash", when="@2.14.0-archive")
 

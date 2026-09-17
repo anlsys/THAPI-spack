@@ -14,7 +14,7 @@ on:
         required: false
         default: false
 env:
-  SPACK_OPT: "--concurrent-packages 2 --show-log-on-error --fail-fast"
+  SPACK_OPT: "--show-log-on-error --fail-fast"
   CACHE_DIR: "${{ github.workspace }}/thapi_cache_${{ github.run_id }}"
   CACHE_DIR_LEGACY: "${{ github.workspace }}/thapi_cache_legacy_${{ github.run_id }}"
 jobs:
@@ -35,10 +35,23 @@ jobs:
     - name: Install dependencies
       run: |
         # Install the dependencies of the latest legacy version.
+        # --include-build-deps: with a mirror configured, the installer keeps
+        # build deps out of the graph and only pulls them in after a package
+        # misses the cache. `--only dependencies` never installs thapi itself,
+        # so that miss never happens and thapi's build-only deps (re2c,
+        # ruby-metababel, ruby-nokogiri, ...) are never built nor pushed --
+        # leaving every downstream job to build them from source.
         . external/spack/share/spack/setup-env.sh
-        spack install --only dependencies $SPACK_OPT thapi@0.0.12
+        spack install --only dependencies --include-build-deps $SPACK_OPT thapi@0.0.12
+    - name: Index the build cache
+      run: |
+        # `--autopush` uploads packages but writes no index, and a mirror
+        # without one is skipped during concretization ("no index found"),
+        # leaving the downstream jobs to rebuild what is already here.
+        . external/spack/share/spack/setup-env.sh
+        spack buildcache update-index ${{ env.CACHE_DIR_LEGACY }}
     - name: Upload THAPI build cache
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: thapi_cache_legacy
         include-hidden-files: true
@@ -61,7 +74,7 @@ jobs:
       uses: mxschmitt/action-tmate@v3
       if: ${{ inputs.debug_enabled }}
     - name: Download THAPI build cache
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: thapi_cache_legacy
         path: ${{ env.CACHE_DIR_LEGACY }}
@@ -98,9 +111,22 @@ jobs:
         # We have to use the exact llvm version from apt package as a direct dependency
         # as the versions in apt and spack doesn't agree to the patch version. The
         # latter will force spack to build llvm from scratch.
-        spack install --only dependencies $SPACK_OPT thapi@develop ^llvm@${LLVM_FULL_VER}
+        # --include-build-deps: with a mirror configured, the installer keeps
+        # build deps out of the graph and only pulls them in after a package
+        # misses the cache. `--only dependencies` never installs thapi itself,
+        # so that miss never happens and thapi's build-only deps (re2c,
+        # ruby-metababel, ruby-nokogiri, ...) are never built nor pushed --
+        # leaving every downstream job to build them from source.
+        spack install --only dependencies --include-build-deps $SPACK_OPT thapi@develop ^llvm@${LLVM_FULL_VER}
+    - name: Index the build cache
+      run: |
+        # `--autopush` uploads packages but writes no index, and a mirror
+        # without one is skipped during concretization ("no index found"),
+        # leaving the downstream jobs to rebuild what is already here.
+        . external/spack/share/spack/setup-env.sh
+        spack buildcache update-index ${{ env.CACHE_DIR }}
     - name: Upload THAPI build cache
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: thapi_cache
         include-hidden-files: true
@@ -112,7 +138,8 @@ jobs:
   install:
     strategy:
       matrix:
-        version: ['thapi@0.0.13', 'thapi@master', 'thapi@develop', 'thapi@develop+archive',
+        version: ['thapi@0.0.13', 'thapi@0.0.14', 'thapi@0.0.15', 'thapi@0.0.16',
+        'thapi@master', 'thapi@develop', 'thapi@develop+archive',
         'thapi@develop ^lttng-tools@master ^lttng-ust@master ^babeltrace2@master']
     needs: install_dependencies
     runs-on: ubuntu-latest
@@ -124,7 +151,7 @@ jobs:
       uses: mxschmitt/action-tmate@v3
       if: ${{ inputs.debug_enabled }}
     - name: Download THAPI build cache
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: thapi_cache
         path: ${{ env.CACHE_DIR }}
@@ -157,7 +184,7 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v6
-    - uses: geekyeggo/delete-artifact@v5
+    - uses: geekyeggo/delete-artifact@v6
       with:
         name: |
           thapi_cache_legacy
