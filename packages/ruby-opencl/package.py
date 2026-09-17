@@ -20,6 +20,7 @@ class RubyOpencl(RubyPackage):
     depends_on("ruby-narray-old", type=("build", "run"))
     depends_on("ruby-ffi", type=("build", "run"))
     depends_on("ruby-narray-ffi", type=("build", "run"))
+    depends_on("gmake", type="build")
 
     def setup_build_environment(self, env):
         # RubyGems builds native C extensions by invoking `make`. Spack exports a
