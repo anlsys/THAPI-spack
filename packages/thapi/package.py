@@ -11,8 +11,8 @@ from spack.package import *
 class Thapi(AutotoolsPackage):
     """A tracing infrastructure for heterogeneous computing applications."""
 
-    homepage = "https://github.com/anlsys/THAPI"
-    git = "https://github.com/anlsys/THAPI.git"
+    homepage = "https://github.com/argonne-lcf/THAPI"
+    git = "https://github.com/argonne-lcf/THAPI.git"
 
     version("ze-validator-dev", branch="ze-validator-dev", preferred=True)
     version("master", branch="master")
