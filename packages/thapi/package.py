@@ -85,7 +85,6 @@ class Thapi(AutotoolsPackage):
     depends_on("ruby-metababel@1.1.4:", type=("build"), when="@0.0.13:")
 
     # ze_validator dependencies.
-    depends_on("ruby-rgl", type=("build", "run"), when="+ze-validator")
     depends_on("ruby-rbtree3@1.1.0:", type=("build", "run"), when="+ze-validator")
 
     # Demangling: 0.0.16 switched from libiberty to llvm::demangle (a tiny
